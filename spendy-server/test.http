@@ -1,0 +1,8 @@
+### Test WebSocket
+WEBSOCKET ws://localhost:3000
+
+### Start Faker
+POST http://localhost:3000/faker/start
+
+### Stop Faker
+POST http://localhost:3000/faker/stop
