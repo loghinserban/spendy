@@ -8,6 +8,8 @@
     "prisma:generate": "prisma generate",
     "prebuild": "npm run prisma:generate",
     "build": "tsc -p tsconfig.json",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "db:setup": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run seed",
     "pretest": "npm run prisma:generate",
     "start": "node dist/src/server.js",
     "test": "jest --coverage",

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { getPrismaClient } from "../src/utils/prismaClient";
 
 const prisma = getPrismaClient();
@@ -13,6 +14,8 @@ const permissions = [
 
 async function main() {
   console.log("🌱 Starting database seeding...");
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "passadmin";
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, 12);
 
   const permissionRecords = await Promise.all(
     permissions.map((permission) =>
@@ -65,12 +68,12 @@ async function main() {
     where: { username: "admin" },
     update: {
       email: "admin@spendy.com",
-      password: "passadmin",
+      password: hashedAdminPassword,
       roleId: adminRole.id,
     },
     create: {
       username: "admin",
-      password: "passadmin",
+      password: hashedAdminPassword,
       email: "admin@spendy.com",
       roleId: adminRole.id,
     },
@@ -93,6 +96,7 @@ async function main() {
     roles: [adminRole, userRole],
     users: [adminUser],
   });
+  console.log(`🔐 Admin password seeded as a bcrypt hash (source password: ${process.env.SEED_ADMIN_PASSWORD ? "SEED_ADMIN_PASSWORD" : "default passadmin"})`);
 }
 
 main()
