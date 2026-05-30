@@ -18,10 +18,30 @@ import {
 
 const authRouter = Router();
 
+const isBcryptHash = (value: string): boolean => /^\$2[aby]?\$\d{2}\$/.test(value);
+
+const compareStoredPassword = async (plainPassword: string, storedPassword: string): Promise<boolean> => {
+  if (isBcryptHash(storedPassword)) {
+    try {
+      return await bcrypt.compare(plainPassword, storedPassword);
+    } catch {
+      return false;
+    }
+  }
+
+  return plainPassword === storedPassword;
+};
+
 authRouter.post("/login", async (req: Request, res: Response) => {
   try {
     // OWASP ZAP: strict DTO validation blocks fuzzed/malformed auth fields before business logic.
     const { username, password, totp } = validateLoginPayload(req.body);
+
+    if (!process.env.DATABASE_URL?.trim()) {
+      return res.status(503).json({
+        message: "Database is not configured yet. Set DATABASE_URL in Render to your PostgreSQL connection string.",
+      });
+    }
 
     const prisma = getPrismaClient();
     const user = await prisma.user.findFirst({ where: { username } });
@@ -30,9 +50,18 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid username or password." });
     }
 
-    const passwordMatches = await bcrypt.compare(password, user.password);
+    const passwordMatches = await compareStoredPassword(password, user.password);
     if (!passwordMatches) {
       return res.status(401).json({ message: "Invalid username or password." });
+    }
+
+    // Upgrade legacy plaintext passwords to bcrypt on successful login.
+    if (!isBcryptHash(user.password)) {
+      const upgradedPassword = await bcrypt.hash(password, 12);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: upgradedPassword },
+      });
     }
 
     // If user has 2FA enabled, return a short-lived Pre-Auth token
