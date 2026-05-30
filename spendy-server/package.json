@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/server.ts",
+    "prisma:generate": "prisma generate",
+    "prebuild": "npm run prisma:generate",
     "build": "tsc -p tsconfig.json",
+    "pretest": "npm run prisma:generate",
     "start": "node dist/src/server.js",
     "test": "jest --coverage",
     "seed": "npx prisma db seed"
