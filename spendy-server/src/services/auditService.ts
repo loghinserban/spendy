@@ -177,6 +177,7 @@ class AuditThreatPipeline {
   private started = false;
   private schemaReady = false;
   private schemaCheckTimer: NodeJS.Timeout | null = null;
+  private readonly databaseUrlConfigured = Boolean(process.env.DATABASE_URL?.trim());
 
   public start(): void {
     if (this.started) {
@@ -184,6 +185,12 @@ class AuditThreatPipeline {
     }
 
     this.started = true;
+
+    if (!this.databaseUrlConfigured) {
+      console.warn("DATABASE_URL is not set — audit threat detection is disabled until PostgreSQL is configured.");
+      return;
+    }
+
     // Perform an immediate schema readiness check and continue to re-check periodically.
     void this.checkSchemaReady();
 
@@ -196,6 +203,11 @@ class AuditThreatPipeline {
   }
 
   private async checkSchemaReady(): Promise<void> {
+    if (!this.databaseUrlConfigured) {
+      this.schemaReady = false;
+      return;
+    }
+
     try {
       const prisma = this.prisma as any;
       // Check for exact table name presence using Postgres to_regclass
