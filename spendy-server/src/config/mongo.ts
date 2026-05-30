@@ -1,8 +1,14 @@
 import mongoose from "mongoose";
 
-const mongoUri = process.env.MONGO_URI ?? "mongodb://localhost:27017/spendy-chat";
+const mongoUri = process.env.MONGO_URI?.trim();
 
 export const connectMongo = async (): Promise<void> => {
+  if (!mongoUri) {
+    throw new Error(
+      "MONGO_URI is not set. Configure a cloud MongoDB connection string in Render environment variables.",
+    );
+  }
+
   if (mongoose.connection.readyState === 1) {
     return;
   }

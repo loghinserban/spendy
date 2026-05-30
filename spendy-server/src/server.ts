@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { createServer as createHttpsServer } from "https";
+import { createServer as createHttpServer } from "http";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -165,24 +166,31 @@ if (require.main === module) {
   const start = async (): Promise<void> => {
     const port = Number(process.env.PORT ?? 3000);
 
+    const useSelfSignedHttps = (process.env.USE_SELF_SIGNED_HTTPS ?? "true") === "true" && process.env.NODE_ENV !== "production";
     const keyPath = path.resolve(process.cwd(), process.env.SSL_KEY_PATH ?? "certs/key.pem");
     const certPath = path.resolve(process.cwd(), process.env.SSL_CERT_PATH ?? "certs/cert.pem");
-    const httpsServer = createHttpsServer(await ensureHttpsCredentials(keyPath, certPath), app);
+    const server = useSelfSignedHttps
+      ? createHttpsServer(await ensureHttpsCredentials(keyPath, certPath), app)
+      : createHttpServer(app);
 
     // Optionally skip Mongo connection during quick dev smoke-tests by setting
     // SKIP_CONNECT_MONGO=true in the environment. This avoids adding test-only
     // code paths elsewhere and keeps production behaviour unchanged.
     if (process.env.SKIP_CONNECT_MONGO === 'true') {
       console.log('SKIP_CONNECT_MONGO is true — skipping MongoDB connection (dev-only)');
+    } else if (process.env.MONGO_URI?.trim()) {
+      void connectMongo().catch((error) => {
+        console.error('MongoDB connection failed during startup; continuing without DB:', error);
+      });
     } else {
-      await connectMongo();
+      console.warn('MONGO_URI is not set — skipping MongoDB connection and running without DB-backed features.');
     }
 
     startAuditThreatDetection();
 
     const allowedOrigins = getAllowedOrigins();
     const wsServer = new WebSocketServer({
-      server: httpsServer,
+      server,
       verifyClient: ({ origin }, done) => {
         // Allow non-browser clients (no Origin header)
         if (!origin) {
@@ -286,8 +294,8 @@ if (require.main === module) {
       });
     });
 
-    httpsServer.listen(port, "0.0.0.0", () => {
-      console.log(`Spendy HTTPS server listening on port ${port} (host 0.0.0.0)`);
+    server.listen(port, "0.0.0.0", () => {
+      console.log(`Spendy server listening on port ${port} (host 0.0.0.0) - ${useSelfSignedHttps ? 'HTTPS (self-signed)' : 'HTTP (platform TLS)'}`);
     });
   };
 
