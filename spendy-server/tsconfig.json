@@ -17,6 +17,6 @@
     "declarationMap": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src", "tests", "jest.config.cjs"],
+  "include": ["src", "tests", "generated", "jest.config.cjs"],
   "exclude": ["dist", "node_modules"]
 }
