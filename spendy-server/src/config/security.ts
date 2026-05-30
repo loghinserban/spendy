@@ -76,16 +76,19 @@ export const createSlidingWindowRateLimiter = (overrides?: {
 };
 
 // Keep a conservative local dev-only default. Production/public deployments
-// must set `CORS_ORIGINS` or `FRONTEND_ORIGIN` in the environment to a
-// comma-separated list of allowed origins (e.g. your Vercel URL). The
-// previous repository default contained a hardcoded LAN IP — remove that to
-// avoid accidental exposure.
+// should set `CORS_ORIGINS` and/or `FRONTEND_ORIGIN` in the environment to a
+// comma-separated list of allowed origins (e.g. your Vercel URL). To reduce
+// config mismatch risk, both variables are merged rather than one overriding
+// the other.
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:5173", "https://localhost:5173"];
 
 const normalizeOrigin = (value: string): string => value.replace(/\/$/, "").trim();
 
 export const getAllowedOrigins = (): string[] => {
-  const configuredOrigins = process.env.CORS_ORIGINS ?? process.env.FRONTEND_ORIGIN ?? "";
+  const configuredOrigins = [process.env.CORS_ORIGINS, process.env.FRONTEND_ORIGIN]
+    .filter(Boolean)
+    .join(",");
+
   const parsedOrigins = configuredOrigins
     .split(",")
     .map((origin) => normalizeOrigin(origin))
@@ -181,9 +184,10 @@ export const getAuthCookieOptions = (): CookieOptions => ({
   // Allow operator to control SameSite behavior via AUTH_COOKIE_SAMESITE.
   // For single-origin deployments (frontend and backend same origin) the
   // secure default is "strict". For cross-origin deployments (Vercel
-  // frontend + Render backend) set AUTH_COOKIE_SAMESITE="none" so browsers
-  // will send cookies with cross-site requests (requires Secure=true).
-  sameSite: (process.env.AUTH_COOKIE_SAMESITE as any) ?? "strict",
+  // frontend + Render backend) use "none" so browsers will send cookies with
+  // cross-site requests (requires Secure=true). Production defaults to "none"
+  // to reduce setup friction if the env var was not set on Render.
+  sameSite: (process.env.AUTH_COOKIE_SAMESITE as any) ?? (process.env.NODE_ENV === "production" ? "none" : "strict"),
   path: "/",
   maxAge: parsePositiveInt(process.env.AUTH_COOKIE_MAX_AGE_MS, 60 * 60 * 1000),
 });
