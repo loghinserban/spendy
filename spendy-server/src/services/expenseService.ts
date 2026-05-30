@@ -90,7 +90,7 @@ class ExpenseService {
       return [];
     }
 
-    return Promise.all(expenses.map((expense) => this.persistExpense(expense)));
+    return Promise.all(expenses.map((expense: any) => this.persistExpense(expense)));
   }
 
   async updateExpense(id: string, payload: ExpenseInput, ownerUserId: string): Promise<Expense | null> {

@@ -71,7 +71,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
     // Map permissions to a simple key-value object
     const permissionsObject: Record<string, boolean> = {};
-    rolePermissions.forEach((rp) => {
+    rolePermissions.forEach((rp: any) => {
       permissionsObject[rp.permission.name] = true;
     });
 
@@ -172,7 +172,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
     // Map permissions to a simple key-value object
     const permissionsObject: Record<string, boolean> = {};
-    rolePermissions.forEach((rp) => {
+    rolePermissions.forEach((rp: any) => {
       permissionsObject[rp.permission.name] = true;
     });
 
@@ -358,7 +358,7 @@ authRouter.post("/verify-2fa", async (req: Request, res: Response) => {
     }
 
     const permissionsObject: Record<string, boolean> = {};
-    rolePermissions.forEach((rp) => {
+    rolePermissions.forEach((rp: any) => {
       permissionsObject[rp.permission.name] = true;
     });
 
